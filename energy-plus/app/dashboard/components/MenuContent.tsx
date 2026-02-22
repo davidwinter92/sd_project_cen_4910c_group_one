@@ -10,6 +10,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import PersonIcon from '@mui/icons-material/Person';
 import PeopleIcon from '@mui/icons-material/People';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
+import FlashOnIcon from '@mui/icons-material/FlashOn';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 
 export default function MenuContent() {
@@ -21,6 +22,7 @@ export default function MenuContent() {
         { text: 'Profile', icon: <PersonIcon />, path: '/dashboard/profile' },
         { text: 'Users', icon: <PeopleIcon />, path: '/dashboard/users' },
         { text: 'Analytics', icon: <AnalyticsIcon />, path: '/dashboard/analytics' },
+        {text: 'Log Energy', icon: <FlashOnIcon />, path: '/dashboard/energy'},
     ];
 
     const secondaryListItems = [
