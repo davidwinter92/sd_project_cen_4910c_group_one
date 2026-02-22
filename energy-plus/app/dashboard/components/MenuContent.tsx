@@ -21,6 +21,7 @@ export default function MenuContent() {
         { text: 'Profile', icon: <PersonIcon />, path: '/dashboard/profile' },
         { text: 'Users', icon: <PeopleIcon />, path: '/dashboard/users' },
         { text: 'Analytics', icon: <AnalyticsIcon />, path: '/dashboard/analytics' },
+        { text: 'Properties', icon: <AnalyticsIcon />, path: '/dashboard/properties' },
     ];
 
     const secondaryListItems = [
