@@ -11,7 +11,6 @@ import {
   DialogTitle,
   Divider,
   Drawer,
-  IconButton,
   Stack,
   Table,
   TableBody,
@@ -23,10 +22,8 @@ import {
   CircularProgress,
   Alert,
 } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
 
 import { supabaseClient } from "../../../lib/supabaseClient";
-import AddPropertyButton from "./components/AddPropertyButton";
 import EditPropertyButton from "./components/EditPropertyButton";
 
 const US_STATES_PLUS_DC = [
@@ -125,7 +122,6 @@ export default function PropertiesPage() {
   const [loading, setLoading] = React.useState(true);
 
   const [formOpen, setFormOpen] = React.useState(false);
-  const [formMode, setFormMode] = React.useState<"add" | "edit">("add");
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [form, setForm] = React.useState<PropertyForm>(emptyForm);
   const [saving, setSaving] = React.useState(false);
@@ -172,17 +168,8 @@ export default function PropertiesPage() {
     setSelected(null);
   };
 
-  const openAdd = () => {
-    setErrorText("");
-    setFormMode("add");
-    setEditingId(null);
-    setForm(emptyForm);
-    setFormOpen(true);
-  };
-
   const openEdit = (row: PropertyRow) => {
     setErrorText("");
-    setFormMode("edit");
     setEditingId(row.id);
     setForm({
       organization_id: row.organization_id ?? "",
@@ -213,13 +200,10 @@ export default function PropertiesPage() {
     };
 
   const canSave =
-    form.organization_id.trim().length > 10 &&
     form.street.trim().length > 2 &&
     form.property_type.length > 0;
 
-  const buildPayload = () => ({
-    organization_id: form.organization_id.trim(),
-    jurisdiction_id: form.jurisdiction_id.trim() || null,
+  const buildUpdatePayload = () => ({
     street: form.street.trim() || null,
     city: form.city.trim() || null,
     state: form.state.trim() || null,
@@ -228,41 +212,13 @@ export default function PropertiesPage() {
     property_type: form.property_type,
   });
 
-  const addProperty = async () => {
-    if (!canSave) return;
-
-    setErrorText("");
-    setSaving(true);
-
-    const payload = buildPayload();
-
-    const { data, error } = await supabaseClient
-      .from("properties")
-      .insert(payload)
-      .select(
-        "id,organization_id,jurisdiction_id,street,city,state,zip,sq_ft,property_type,created_at"
-      )
-      .single();
-
-    if (error) {
-      console.error("Insert error:", error.message);
-      setErrorText(error.message);
-      setSaving(false);
-      return;
-    }
-
-    setRows((prev) => [data as PropertyRow, ...prev]);
-    setSaving(false);
-    closeForm();
-  };
-
   const updateProperty = async () => {
     if (!canSave || !editingId) return;
 
     setErrorText("");
     setSaving(true);
 
-    const payload = buildPayload();
+    const payload = buildUpdatePayload();
 
     const { data, error } = await supabaseClient
       .from("properties")
@@ -292,38 +248,6 @@ export default function PropertiesPage() {
     closeForm();
   };
 
-  const handleSave = async () => {
-    if (formMode === "add") {
-      await addProperty();
-    } else {
-      await updateProperty();
-    }
-  };
-
-  const removeProperty = async (row: PropertyRow) => {
-    const ok = confirm(
-      `Delete "${row.street ?? "(no street)"}"? This cannot be undone.`
-    );
-    if (!ok) return;
-
-    setErrorText("");
-
-    setRows((prev) => prev.filter((p) => p.id !== row.id));
-
-    const { error } = await supabaseClient
-      .from("properties")
-      .delete()
-      .eq("id", row.id);
-
-    if (error) {
-      console.error("Delete error:", error.message);
-      setErrorText(error.message);
-      await loadProperties();
-    }
-
-    if (selected?.id === row.id) closeView();
-  };
-
   return (
     <>
       <Container maxWidth="lg" sx={{ pt: 14, pb: 6 }}>
@@ -341,11 +265,9 @@ export default function PropertiesPage() {
                   Properties
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  View, add, and remove properties tied to your organization.
+                  View and edit properties tied to your organization.
                 </Typography>
               </Box>
-
-              <AddPropertyButton onClick={openAdd} />
             </Stack>
 
             {errorText ? (
@@ -371,10 +293,10 @@ export default function PropertiesPage() {
                 }}
               >
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  No properties yet
+                  No properties found
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Add your first property to start tracking energy usage.
+                <Typography variant="body2" color="text.secondary">
+                  There are currently no properties to display.
                 </Typography>
               </Box>
             ) : (
@@ -401,21 +323,16 @@ export default function PropertiesPage() {
                   <TableBody>
                     {rows.map((row) => (
                       <TableRow key={row.id} hover>
-                        <TableCell>{row.street ?? "—"}</TableCell>
+                        <TableCell onClick={() => openView(row)} sx={{ cursor: "pointer" }}>
+                          {row.street ?? "—"}
+                        </TableCell>
                         <TableCell>{row.city ?? "—"}</TableCell>
                         <TableCell>{row.state ?? "—"}</TableCell>
                         <TableCell>{row.property_type ?? "—"}</TableCell>
                         <TableCell align="right">{row.sq_ft ?? "—"}</TableCell>
 
                         <TableCell align="right">
-                          <button onClick={() => openEdit(row)}>Edit</button>
-                          <IconButton
-                            aria-label="delete"
-                            onClick={() => removeProperty(row)}
-                            title="Delete property"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
+                          <Button onClick={() => openEdit(row)}>Edit</Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -428,33 +345,32 @@ export default function PropertiesPage() {
       </Container>
 
       <Dialog open={formOpen} onClose={closeForm} fullWidth maxWidth="sm">
-        <DialogTitle>
-          {formMode === "add" ? "Add Property" : "Edit Property"}
-        </DialogTitle>
+        <DialogTitle>Edit Property</DialogTitle>
 
         <DialogContent sx={{ pt: 1 }}>
           <Stack gap={2} sx={{ mt: 1 }}>
             <TextField
               label="Organization ID (uuid)"
               value={form.organization_id}
-              onChange={onChange("organization_id")}
-              required
-              autoFocus
-              helperText="Must match an existing organization_id in Supabase."
+              disabled
+              fullWidth
+              helperText="Organization ID cannot be changed."
             />
 
             <TextField
               label="Jurisdiction ID (uuid)"
               value={form.jurisdiction_id}
-              onChange={onChange("jurisdiction_id")}
-              helperText="Optional unless your database requires it."
-/>
+              disabled
+              fullWidth
+              helperText="Jurisdiction ID cannot be changed."
+            />
 
             <TextField
               label="Street"
               value={form.street}
               onChange={onChange("street")}
               required
+              autoFocus
             />
 
             <Stack direction={{ xs: "column", sm: "row" }} gap={2}>
@@ -510,15 +426,6 @@ export default function PropertiesPage() {
               <option value="Office">Office</option>
             </TextField>
           </Stack>
-
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: "block", mt: 2 }}
-          >
-            Note: If you get a foreign key or RLS error, your Organization ID must
-            match a real organization the logged-in user is allowed to access.
-          </Typography>
         </DialogContent>
 
         <DialogActions>
@@ -526,17 +433,11 @@ export default function PropertiesPage() {
             Cancel
           </Button>
           <Button
-            onClick={handleSave}
+            onClick={updateProperty}
             variant="contained"
             disabled={!canSave || saving}
           >
-            {saving
-              ? formMode === "add"
-                ? "Saving..."
-                : "Updating..."
-              : formMode === "add"
-              ? "Save"
-              : "Update"}
+            {saving ? "Updating..." : "Update"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -561,6 +462,7 @@ export default function PropertiesPage() {
               <Field label="Sq Ft" value={selected.sq_ft?.toString() ?? "—"} />
               <Field label="Property Type" value={selected.property_type ?? "—"} />
               <Field label="Organization ID" value={selected.organization_id} />
+              <Field label="Jurisdiction ID" value={selected.jurisdiction_id ?? "—"} />
 
               <Divider sx={{ my: 2 }} />
 
@@ -570,14 +472,6 @@ export default function PropertiesPage() {
                   onClick={() => openEdit(selected)}
                 >
                   Edit
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  onClick={() => removeProperty(selected)}
-                  startIcon={<DeleteIcon />}
-                >
-                  Delete
                 </Button>
                 <Button variant="contained" onClick={closeView}>
                   Close
