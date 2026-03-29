@@ -19,25 +19,19 @@ import { supabaseClient } from "@/lib/supabaseClient";
 export interface Property {
     id: string;
     organization_id: string;
-    jurisdiction_id: string | null;
     street: string | null;
     city: string | null;
     state: string | null;
-    zip: number | null;
-    sq_ft: number | null;
     property_type: string | null;
-    created_at?: string | null;
 }
 
 interface SelectPropertiesProps {
-    jurisdictionId: string;
     selectedOrganizationId?: string | null;
     onPropertySelect: (property: Property) => void;
     selectedProperty?: Property | null;
 }
 
 export default function SelectProperties({
-                                             jurisdictionId,
                                              selectedOrganizationId,
                                              onPropertySelect,
                                              selectedProperty,
@@ -49,7 +43,7 @@ export default function SelectProperties({
 
     useEffect(() => {
         async function fetchProperties() {
-            if (!jurisdictionId) {
+            if (!selectedOrganizationId) {
                 setProperties([]);
                 return;
             }
@@ -57,19 +51,13 @@ export default function SelectProperties({
             setLoading(true);
             setErrorText("");
 
-            let query = supabaseClient
+            const { data, error } = await supabaseClient
                 .from("properties")
                 .select(
-                    "id, organization_id, jurisdiction_id, street, city, state, zip, sq_ft, property_type, created_at"
+                    "id, organization_id, street, city, state, property_type"
                 )
-                .eq("jurisdiction_id", jurisdictionId)
+                .eq("organization_id", selectedOrganizationId)
                 .order("created_at", { ascending: false });
-
-            if (selectedOrganizationId) {
-                query = query.eq("organization_id", selectedOrganizationId);
-            }
-
-            const { data, error } = await query;
 
             if (error) {
                 setErrorText(error.message);
@@ -83,7 +71,7 @@ export default function SelectProperties({
         }
 
         fetchProperties();
-    }, [jurisdictionId, selectedOrganizationId]);
+    }, [selectedOrganizationId]); // ALWAYS exactly one dependency
 
     const handleSelect = (property: Property) => {
         onPropertySelect(property);
@@ -98,7 +86,12 @@ export default function SelectProperties({
 
     return (
         <>
-            <Button variant="contained" onClick={() => setOpen(true)} sx={{ minWidth: 220, textTransform: "none" }}>
+            <Button
+                variant="contained"
+                onClick={() => setOpen(true)}
+                sx={{ minWidth: 220, textTransform: "none" }}
+                disabled={!selectedOrganizationId} //  key UX
+            >
                 {buttonLabel}
             </Button>
 
@@ -106,23 +99,38 @@ export default function SelectProperties({
                 <DialogTitle>Select Property</DialogTitle>
 
                 <DialogContent dividers>
-                    {errorText ? <Alert severity="error" sx={{ mb: 2 }}>{errorText}</Alert> : null}
-
-                    {loading ? (
+                    {/* No organization selected */}
+                    {!selectedOrganizationId ? (
+                        <Typography color="text.secondary">
+                            Select organization first
+                        </Typography>
+                    ) : errorText ? (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            {errorText}
+                        </Alert>
+                    ) : loading ? (
                         <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                             <CircularProgress />
                         </Box>
                     ) : properties.length === 0 ? (
                         <Typography color="text.secondary">
-                            No properties found for this jurisdiction.
+                            No properties found for this organization.
                         </Typography>
                     ) : (
                         <List>
                             {properties.map((property) => (
-                                <ListItemButton key={property.id} onClick={() => handleSelect(property)}>
+                                <ListItemButton
+                                    key={property.id}
+                                    onClick={() => handleSelect(property)}
+                                    selected={selectedProperty?.id === property.id}
+                                >
                                     <ListItemText
                                         primary={property.street || "Unnamed Property"}
-                                        secondary={[property.city, property.state, property.property_type]
+                                        secondary={[
+                                            property.city,
+                                            property.state,
+                                            property.property_type,
+                                        ]
                                             .filter(Boolean)
                                             .join(" • ")}
                                     />

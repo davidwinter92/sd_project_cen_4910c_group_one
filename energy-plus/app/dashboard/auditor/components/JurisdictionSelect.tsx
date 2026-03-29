@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import {
     Alert,
     Box,
@@ -34,12 +33,18 @@ type Notice = {
     message: string;
 } | null;
 
-export default function JurisdictionSelect() {
-    const router = useRouter();
+interface JurisdictionSelectProps {
+    onSelectJurisdiction: (id: string, name: string) => void;
+}
 
-    const [jurisdictionType, setJurisdictionType] = React.useState<JurisdictionType | "">("");
+export default function JurisdictionSelect({
+                                               onSelectJurisdiction,
+                                           }: JurisdictionSelectProps) {
+    const [jurisdictionType, setJurisdictionType] =
+        React.useState<JurisdictionType | "">("");
     const [jurisdictions, setJurisdictions] = React.useState<Jurisdiction[]>([]);
-    const [selectedJurisdictionId, setSelectedJurisdictionId] = React.useState("");
+    const [selectedJurisdictionId, setSelectedJurisdictionId] =
+        React.useState("");
     const [loading, setLoading] = React.useState(true);
     const [notice, setNotice] = React.useState<Notice>(null);
 
@@ -95,20 +100,19 @@ export default function JurisdictionSelect() {
             (j) => j.id === selectedJurisdictionId
         );
 
-        localStorage.setItem("auditorJurisdictionId", selectedJurisdictionId);
-
-        if (selectedJurisdiction) {
-            localStorage.setItem(
-                "auditorJurisdictionName",
-                selectedJurisdiction.name
-            );
-            localStorage.setItem(
-                "auditorJurisdictionType",
-                selectedJurisdiction.type
-            );
+        if (!selectedJurisdiction) {
+            setNotice({
+                type: "error",
+                message: "Invalid jurisdiction selection.",
+            });
+            return;
         }
 
-        router.push("/dashboard/AuditorOverview");
+        //  THIS is the key change
+        onSelectJurisdiction(
+            selectedJurisdiction.id,
+            selectedJurisdiction.name
+        );
     };
 
     return (

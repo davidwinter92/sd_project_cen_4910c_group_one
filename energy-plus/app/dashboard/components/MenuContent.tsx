@@ -17,18 +17,29 @@ import AnalyticsIcon from "@mui/icons-material/Analytics";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import { supabaseClient } from "@/lib/supabaseClient";
 
+type AccountType = "user" | "admin" | "auditor" | null;
+
+type MenuItemType = {
+    text: string;
+    icon: React.ReactNode;
+    path: string;
+};
+
 export default function MenuContent() {
     const router = useRouter();
     const pathname = usePathname();
-    const [accountType, setAccountType] = useState<string | null>(null);
+    const [accountType, setAccountType] = useState<AccountType>(null);
 
     useEffect(() => {
-        async function fetchProfile() {
+        async function loadAccountType() {
             const {
                 data: { user },
             } = await supabaseClient.auth.getUser();
 
-            if (!user) return;
+            if (!user) {
+                setAccountType("user");
+                return;
+            }
 
             const { data, error } = await supabaseClient
                 .from("profiles")
@@ -36,82 +47,36 @@ export default function MenuContent() {
                 .eq("id", user.id)
                 .single();
 
-            if (!error && data) {
-                setAccountType(data.account_type);
+            if (error || !data) {
+                setAccountType("user");
+                return;
             }
+
+            setAccountType(data.account_type as AccountType);
         }
 
-        fetchProfile();
+        loadAccountType();
     }, []);
 
-    const overviewPath =
+    const mainListItems: MenuItemType[] =
         accountType === "auditor"
-            ? "/dashboard/AuditorOverview"
-            : "/dashboard/overview";
-
-    const mainListItems = [
-        { text: "Overview", icon: <HomeIcon />, path: overviewPath },
-
-        // USER MENU
-        ...(accountType !== "auditor"
             ? [
-                {
-                    text: "Organizations",
-                    icon: <PersonIcon />,
-                    path: "/dashboard/organizations",
-                },
-                {
-                    text: "Log Energy",
-                    icon: <FlashOnIcon />,
-                    path: "/dashboard/energy",
-                },
-                {
-                    text: "Contacts",
-                    icon: <ContactsIcon />,
-                    path: "/dashboard/contacts",
-                },
-                {
-                    text: "Analytics",
-                    icon: <AnalyticsIcon />,
-                    path: "/dashboard/analytics",
-                },
-                {
-                    text: "Properties",
-                    icon: <AnalyticsIcon />,
-                    path: "/dashboard/properties",
-                },
+                { text: "Overview", icon: <HomeIcon />, path: "/dashboard/AuditorOverview" },
+                { text: "Organizations", icon: <PersonIcon />, path: "/dashboard/organizations" },
+                { text: "Properties", icon: <AnalyticsIcon />, path: "/dashboard/properties" },
+                { text: "Users", icon: <PeopleIcon />, path: "/dashboard/users" },
             ]
-            : []),
+            : [
+                { text: "Overview", icon: <HomeIcon />, path: "/dashboard/overview" },
+                { text: "Organizations", icon: <PersonIcon />, path: "/dashboard/organizations" },
+                { text: "Log Energy", icon: <FlashOnIcon />, path: "/dashboard/logEnergy" },
+                { text: "Contacts", icon: <ContactsIcon />, path: "/dashboard/contacts" },
+                { text: "Analytics", icon: <AnalyticsIcon />, path: "/dashboard/analytics" },
+                { text: "Properties", icon: <AnalyticsIcon />, path: "/dashboard/properties" },
+                { text: "Users", icon: <PeopleIcon />, path: "/dashboard/users" },
+            ];
 
-        // AUDITOR MENU
-        ...(accountType === "auditor"
-            ? [
-                {
-                    text: "Organizations",
-                    icon: <PersonIcon />,
-                    path: "/dashboard/AuditorOverview",
-                },
-                {
-                    text: "Properties",
-                    icon: <AnalyticsIcon />,
-                    path: "/dashboard/AuditorOverview",
-                },
-            ]
-            : []),
-
-        // ADMIN + AUDITOR
-        ...(accountType === "admin" || accountType === "auditor"
-            ? [
-                {
-                    text: "Users",
-                    icon: <PeopleIcon />,
-                    path: "/dashboard/users",
-                },
-            ]
-            : []),
-    ];
-
-    const secondaryListItems = [
+    const secondaryListItems: MenuItemType[] = [
         { text: "Settings", icon: <SettingsRoundedIcon />, path: "/dashboard/settings" },
     ];
 

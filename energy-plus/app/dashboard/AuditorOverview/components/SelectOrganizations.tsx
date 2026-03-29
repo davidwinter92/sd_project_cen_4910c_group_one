@@ -40,6 +40,7 @@ export default function SelectOrganizations({
 
     useEffect(() => {
         async function fetchOrganizations() {
+            // 👇 IMPORTANT: only run when jurisdiction exists
             if (!jurisdictionId) {
                 setOrganizations([]);
                 return;
@@ -51,10 +52,11 @@ export default function SelectOrganizations({
             const { data, error } = await supabaseClient
                 .from("organizations")
                 .select("id, name, jurisdiction_id")
-                .eq("jurisdiction_id", jurisdictionId)
+              //  .eq("jurisdiction_id", jurisdictionId)
                 .order("name", { ascending: true });
 
             if (error) {
+                console.error("Error fetching organizations:", error.message);
                 setErrorText(error.message);
                 setOrganizations([]);
                 setLoading(false);
@@ -73,19 +75,36 @@ export default function SelectOrganizations({
         setOpen(false);
     };
 
+    const buttonLabel = selectedOrganization
+        ? selectedOrganization.name
+        : "Search Organizations";
+
     return (
         <>
-            <Button variant="contained" onClick={() => setOpen(true)} sx={{ minWidth: 220, textTransform: "none" }}>
-                {selectedOrganization?.name || "Search Organizations"}
+            <Button
+                variant="contained"
+                onClick={() => setOpen(true)}
+                sx={{ minWidth: 220, textTransform: "none" }}
+                disabled={!jurisdictionId}
+            >
+                {buttonLabel}
             </Button>
 
             <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
                 <DialogTitle>Select Organization</DialogTitle>
 
                 <DialogContent dividers>
-                    {errorText ? <Alert severity="error" sx={{ mb: 2 }}>{errorText}</Alert> : null}
+                    {errorText ? (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            {errorText}
+                        </Alert>
+                    ) : null}
 
-                    {loading ? (
+                    {!jurisdictionId ? (
+                        <Typography color="text.secondary">
+                            Please select a jurisdiction first.
+                        </Typography>
+                    ) : loading ? (
                         <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                             <CircularProgress />
                         </Box>
@@ -96,7 +115,11 @@ export default function SelectOrganizations({
                     ) : (
                         <List>
                             {organizations.map((organization) => (
-                                <ListItemButton key={organization.id} onClick={() => handleSelect(organization)}>
+                                <ListItemButton
+                                    key={organization.id}
+                                    onClick={() => handleSelect(organization)}
+                                    selected={selectedOrganization?.id === organization.id}
+                                >
                                     <ListItemText primary={organization.name} />
                                 </ListItemButton>
                             ))}

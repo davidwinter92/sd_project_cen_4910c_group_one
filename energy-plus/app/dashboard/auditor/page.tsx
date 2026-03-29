@@ -1,7 +1,14 @@
 "use client";
 
-import JurisdictionSelect from "./components/JurisdictionSelect";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function AuditorPage() {
-    return <JurisdictionSelect />;
+    const router = useRouter();
+
+    useEffect(() => {
+        router.replace("/dashboard/AuditorOverview");
+    }, [router]);
+
+    return null;
 }
