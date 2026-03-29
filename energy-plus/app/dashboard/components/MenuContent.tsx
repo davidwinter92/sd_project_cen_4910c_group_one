@@ -62,7 +62,7 @@ export default function MenuContent() {
         accountType === "auditor"
             ? [
                 { text: "Overview", icon: <HomeIcon />, path: "/dashboard/AuditorOverview" },
-                { text: "Organizations", icon: <PersonIcon />, path: "/dashboard/organizations" },
+                { text: "Organizations", icon: <PersonIcon />, path: "/dashboard/AuditorOrganizations" },
                 { text: "Properties", icon: <AnalyticsIcon />, path: "/dashboard/properties" },
                 { text: "Users", icon: <PeopleIcon />, path: "/dashboard/users" },
             ]

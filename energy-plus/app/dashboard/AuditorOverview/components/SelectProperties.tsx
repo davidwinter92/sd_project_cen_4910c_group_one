@@ -54,12 +54,13 @@ export default function SelectProperties({
             const { data, error } = await supabaseClient
                 .from("properties")
                 .select(
-                    "id, organization_id, street, city, state, property_type"
+                    "id, organization_id, jurisdiction_id, street, city, state, zip, sq_ft, property_type, created_at"
                 )
                 .eq("organization_id", selectedOrganizationId)
                 .order("created_at", { ascending: false });
 
             if (error) {
+                console.error("Error fetching properties:", error.message);
                 setErrorText(error.message);
                 setProperties([]);
                 setLoading(false);
