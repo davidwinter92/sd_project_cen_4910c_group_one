@@ -1,0 +1,149 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.auditor_jurisdictions (
+  auditor_id uuid NOT NULL,
+  jurisdiction_id uuid NOT NULL,
+  CONSTRAINT auditor_jurisdictions_pkey PRIMARY KEY (auditor_id, jurisdiction_id),
+  CONSTRAINT auditor_jurisdictions_auditor_id_fkey FOREIGN KEY (auditor_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.contacts (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  owner_id uuid NOT NULL,
+  email text NOT NULL,
+  full_name text,
+  created_at timestamp with time zone DEFAULT now(),
+  first_name character varying NOT NULL,
+  last_name character varying NOT NULL,
+  CONSTRAINT contacts_pkey PRIMARY KEY (id),
+  CONSTRAINT contacts_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.energy_billing (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  billing_start date NOT NULL,
+  billing_end date NOT NULL,
+  cost numeric NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  meter_id uuid NOT NULL,
+  usage_amount numeric,
+  is_voided boolean NOT NULL DEFAULT false,
+  void_reason text,
+  voided_at timestamp with time zone,
+  voided_by uuid,
+  CONSTRAINT energy_billing_pkey PRIMARY KEY (id),
+  CONSTRAINT energy_billing_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id),
+  CONSTRAINT energy_billing_meter_id_fkey FOREIGN KEY (meter_id) REFERENCES public.meters(id)
+);
+CREATE TABLE public.energy_scores (
+  property_id uuid NOT NULL UNIQUE,
+  billing_month date NOT NULL,
+  score integer NOT NULL CHECK (score >= 1 AND score <= 100),
+  period_start date,
+  period_end date,
+  total_usage numeric,
+  eui numeric,
+  status text DEFAULT
+CASE
+    WHEN (score >= 50) THEN 'pass'::text
+    ELSE 'fail'::text
+END,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT energy_scores_pkey PRIMARY KEY (property_id, billing_month),
+  CONSTRAINT energy_scores_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.properties(id)
+);
+CREATE TABLE public.energy_types (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name text NOT NULL UNIQUE,
+  unit text NOT NULL,
+  CONSTRAINT energy_types_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.energy_usage (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  property_id uuid NOT NULL,
+  usage_kwh numeric NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  usage_date date NOT NULL,
+  meter_id uuid NOT NULL,
+  usage_amount numeric NOT NULL,
+  usage_start date NOT NULL,
+  usage_end date NOT NULL,
+  CONSTRAINT energy_usage_pkey PRIMARY KEY (id),
+  CONSTRAINT energy_usage_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.properties(id),
+  CONSTRAINT energy_usage_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id),
+  CONSTRAINT energy_usage_meter_id_fkey FOREIGN KEY (meter_id) REFERENCES public.meters(id)
+);
+CREATE TABLE public.jurisdictions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  type text NOT NULL CHECK (type = ANY (ARRAY['city'::text, 'county'::text, 'state'::text])),
+  name text NOT NULL,
+  slug text NOT NULL,
+  parent_id uuid,
+  CONSTRAINT jurisdictions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.meters (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  property_id uuid NOT NULL,
+  energy_type_id uuid NOT NULL,
+  meter_number text,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT meters_pkey PRIMARY KEY (id),
+  CONSTRAINT meters_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.properties(id),
+  CONSTRAINT meters_energy_type_id_fkey FOREIGN KEY (energy_type_id) REFERENCES public.energy_types(id)
+);
+CREATE TABLE public.organization_members (
+  organization_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  role text NOT NULL CHECK (role = ANY (ARRAY['owner'::text, 'admin'::text, 'member'::text, 'auditor'::text])),
+  joined_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organization_members_pkey PRIMARY KEY (organization_id, user_id),
+  CONSTRAINT organization_members_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT organization_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.organizations (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name text NOT NULL,
+  slug text NOT NULL UNIQUE,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organizations_pkey PRIMARY KEY (id),
+  CONSTRAINT organizations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  role text DEFAULT 'user'::text CHECK (role = ANY (ARRAY['user'::text, 'gov'::text, 'admin'::text])),
+  username text NOT NULL UNIQUE,
+  first_name text NOT NULL,
+  last_name text NOT NULL,
+  account_type text DEFAULT 'user'::text CHECK (account_type = ANY (ARRAY['user'::text, 'admin'::text, 'auditor'::text])),
+  email character varying,
+  avatar_url character varying,
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.properties (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  organization_id uuid NOT NULL,
+  street text NOT NULL,
+  sq_ft numeric NOT NULL CHECK (sq_ft > 0::numeric),
+  property_type text,
+  created_at timestamp with time zone DEFAULT now(),
+  city text,
+  state text,
+  zip bigint,
+  jurisdiction_id uuid NOT NULL,
+  property_name text,
+  CONSTRAINT properties_pkey PRIMARY KEY (id),
+  CONSTRAINT properties_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT properties_jurisdiction_id_fkey FOREIGN KEY (jurisdiction_id) REFERENCES public.jurisdictions(id)
+);
+CREATE TABLE public.teams (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  organization_id uuid NOT NULL,
+  name text NOT NULL,
+  slug text NOT NULL,
+  CONSTRAINT teams_pkey PRIMARY KEY (id),
+  CONSTRAINT teams_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
