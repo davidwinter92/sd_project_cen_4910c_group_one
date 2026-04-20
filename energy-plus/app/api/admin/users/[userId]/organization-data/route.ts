@@ -21,7 +21,16 @@ type OrganizationRow = {
 type PropertyCountRow = {
     id: string;
     organization_id: string;
+    street: string | null;
 };
+
+function buildPropertyLabel(property: PropertyCountRow) {
+    if (property.street?.trim()) {
+        return property.street.trim();
+    }
+
+    return `Unnamed Property (${property.id.slice(0, 8)})`;
+}
 
 function formatUserName(profile: ProfileRow | null, authUser: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
     const fullName = [profile?.first_name, profile?.last_name]
@@ -47,6 +56,8 @@ function formatUserName(profile: ProfileRow | null, authUser: { email?: string |
 function buildOrganizationProperties(
     organization: OrganizationRow,
     linkedPropertyCount: number,
+    linkedPropertyNames: string[],
+    createdByDisplayName: string,
 ) {
     return [
         {
@@ -79,8 +90,8 @@ function buildOrganizationProperties(
         {
             id: `${organization.id}-created-by`,
             key: "created_by",
-            label: "Created By User ID",
-            value: organization.created_by,
+            label: "Created By User",
+            value: createdByDisplayName,
             description: "User currently associated with this organization record.",
             type: "string" as const,
             updatedAt: organization.created_at ?? undefined,
@@ -101,6 +112,17 @@ function buildOrganizationProperties(
             value: linkedPropertyCount,
             description: "Number of property records currently assigned to this organization.",
             type: "number" as const,
+            updatedAt: organization.created_at ?? undefined,
+        },
+        {
+            id: `${organization.id}-linked-properties`,
+            key: "linked_properties",
+            label: "Linked Properties",
+            value: linkedPropertyNames.length
+                ? linkedPropertyNames.join("\n")
+                : "No linked properties",
+            description: "Property names currently assigned to this organization.",
+            type: "string" as const,
             updatedAt: organization.created_at ?? undefined,
         },
     ];
@@ -165,11 +187,12 @@ export async function GET(
         const organizationIds = organizations.map((organization) => organization.id);
 
         const propertyCountMap = new Map<string, number>();
+        const propertyNameMap = new Map<string, string[]>();
 
         if (organizationIds.length) {
             const propertyRowsResult = await supabaseServer
                 .from("properties")
-                .select("id, organization_id")
+                .select("id, organization_id, street")
                 .in("organization_id", organizationIds);
 
             if (propertyRowsResult.error) {
@@ -184,13 +207,22 @@ export async function GET(
                     property.organization_id,
                     (propertyCountMap.get(property.organization_id) ?? 0) + 1,
                 );
+                propertyNameMap.set(
+                    property.organization_id,
+                    [...(propertyNameMap.get(property.organization_id) ?? []), buildPropertyLabel(property)],
+                );
             }
         }
+
+        const createdByDisplayName = formatUserName(
+            profileResult.data ?? null,
+            authUserResult.data.user,
+        );
 
         return NextResponse.json({
             user: {
                 id: normalizedUserId,
-                name: formatUserName(profileResult.data ?? null, authUserResult.data.user),
+                name: createdByDisplayName,
             },
             organizations: organizations.map((organization) => ({
                 id: organization.id,
@@ -198,6 +230,8 @@ export async function GET(
                 properties: buildOrganizationProperties(
                     organization,
                     propertyCountMap.get(organization.id) ?? 0,
+                    propertyNameMap.get(organization.id) ?? [],
+                    createdByDisplayName,
                 ),
             })),
         });

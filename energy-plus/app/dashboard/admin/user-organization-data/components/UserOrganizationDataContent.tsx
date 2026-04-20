@@ -68,6 +68,10 @@ function formatDetailValue(property: OrganizationProperty) {
     return String(value);
 }
 
+function getDetailValueTitle(label: string) {
+    return label.replace(/^Linked\s+/i, "").trim();
+}
+
 export default function UserOrganizationDataContent({
     users,
     selectedUserId,
@@ -85,6 +89,11 @@ export default function UserOrganizationDataContent({
     detailOpen,
     onCloseDetail,
     onSelectUser,
+    onEditOrganization,
+    onDeleteOrganization,
+    organizationActionsDisabled = false,
+    deleteDisabled = false,
+    deleteHelperText,
 }: UserOrganizationDataContentProps) {
     const selectedOrganization = organizations.find(
         (organization) => organization.id === selectedOrganizationId,
@@ -95,6 +104,7 @@ export default function UserOrganizationDataContent({
         ? undefined
         : getPropertiesEmptyMessage(selectedOrganizationId, properties);
     const showPropertyAction = Boolean(selectedPropertyId);
+    const showOrganizationActions = Boolean(selectedOrganizationId);
 
     return (
         <Stack spacing={3.5}>
@@ -150,6 +160,24 @@ export default function UserOrganizationDataContent({
                     />
                 </Grid>
 
+                {showOrganizationActions ? (
+                    <Grid size={{ xs: 12 }}>
+                        <Stack
+                            direction="column"
+                            spacing={1.5}
+                            alignItems="flex-start"
+                        >
+                            <Button
+                                variant="outlined"
+                                onClick={onEditOrganization}
+                                disabled={organizationActionsDisabled || !selectedOrganizationId}
+                            >
+                                Edit Organization Name
+                            </Button>
+                        </Stack>
+                    </Grid>
+                ) : null}
+
                 <Grid size={{ xs: 12, md: showPropertyAction ? 8.5 : 12 }}>
                     <OrganizationPropertiesList
                         properties={properties}
@@ -172,28 +200,40 @@ export default function UserOrganizationDataContent({
                         />
                     </Grid>
                 ) : null}
+
+                {showOrganizationActions ? (
+                    <Grid size={{ xs: 12 }}>
+                        <Stack spacing={1.5} alignItems="flex-start">
+                            {deleteHelperText ? (
+                                <Typography variant="body2" color="text.secondary">
+                                    {deleteHelperText}
+                                </Typography>
+                            ) : null}
+                            <Button
+                                color="error"
+                                variant="outlined"
+                                onClick={onDeleteOrganization}
+                                disabled={
+                                    organizationActionsDisabled
+                                    || !selectedOrganizationId
+                                    || deleteDisabled
+                                }
+                            >
+                                Delete Selected Organization
+                            </Button>
+                        </Stack>
+                    </Grid>
+                ) : null}
             </Grid>
 
             <Dialog open={detailOpen} onClose={onCloseDetail} fullWidth maxWidth="sm">
-                <DialogTitle>Property details</DialogTitle>
+                <DialogTitle>{selectedProperty?.label ?? "Property details"}</DialogTitle>
                 <DialogContent dividers>
                     {selectedProperty ? (
                         <Stack spacing={2}>
                             <Box>
                                 <Typography variant="overline" color="text.secondary">
-                                    Label
-                                </Typography>
-                                <Typography variant="h6">{selectedProperty.label}</Typography>
-                            </Box>
-                            <Box>
-                                <Typography variant="overline" color="text.secondary">
-                                    Key
-                                </Typography>
-                                <Typography variant="body1">{selectedProperty.key}</Typography>
-                            </Box>
-                            <Box>
-                                <Typography variant="overline" color="text.secondary">
-                                    Value
+                                    {getDetailValueTitle(selectedProperty.label)}
                                 </Typography>
                                 <Typography
                                     variant="body1"
@@ -215,7 +255,7 @@ export default function UserOrganizationDataContent({
                             {selectedProperty.updatedAt ? (
                                 <Box>
                                     <Typography variant="overline" color="text.secondary">
-                                        Updated At
+                                        Created At
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">
                                         {new Date(selectedProperty.updatedAt).toLocaleString()}

@@ -77,8 +77,6 @@ export default function OrganizationPropertiesList({
                 <List
                     aria-label="Organization properties"
                     sx={{
-                        maxHeight: 460,
-                        overflowY: "auto",
                         pr: 0.5,
                     }}
                 >

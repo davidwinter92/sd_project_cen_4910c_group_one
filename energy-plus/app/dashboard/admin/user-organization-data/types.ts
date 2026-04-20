@@ -30,6 +30,11 @@ export type UserOrganizationDataResponse = {
     organizations: UserOrganization[];
 };
 
+export type Notice = {
+    type: "success" | "error";
+    message: string;
+} | null;
+
 export type AdminUserOption = {
     id: string;
     name: string;
@@ -87,4 +92,9 @@ export type UserOrganizationDataContentProps = {
     detailOpen: boolean;
     onCloseDetail: () => void;
     onSelectUser: (userId: string | null) => void;
+    onEditOrganization: () => void;
+    onDeleteOrganization: () => void;
+    organizationActionsDisabled?: boolean;
+    deleteDisabled?: boolean;
+    deleteHelperText?: string;
 };
