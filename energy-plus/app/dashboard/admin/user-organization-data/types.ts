@@ -16,10 +16,27 @@ export type OrganizationProperty = {
     updatedAt?: string;
 };
 
+export type UserOrganizationProperty = {
+    id: string;
+    organization_id: string;
+    jurisdiction_id: string | null;
+    jurisdiction_name?: string | null;
+    street: string | null;
+    city: string | null;
+    state: string | null;
+    zip: number | null;
+    sq_ft: number | null;
+    property_type: string | null;
+    created_at: string | null;
+};
+
 export type UserOrganization = {
     id: string;
     name: string;
-    properties: OrganizationProperty[];
+    slug?: string | null;
+    createdBy?: string | null;
+    createdAt?: string | null;
+    properties: UserOrganizationProperty[];
 };
 
 export type UserOrganizationDataResponse = {
@@ -62,7 +79,7 @@ export type OrganizationSearchProps = {
 };
 
 export type OrganizationPropertiesListProps = {
-    properties: OrganizationProperty[];
+    properties: UserOrganizationProperty[];
     selectedPropertyId: string | null;
     onSelectProperty: (propertyId: string | null) => void;
     isLoading?: boolean;
@@ -70,7 +87,7 @@ export type OrganizationPropertiesListProps = {
 };
 
 export type ViewPropertyButtonProps = {
-    selectedPropertyId: string | null;
+    selectedProperty: UserOrganizationProperty | null;
     onClick: () => void;
     disabled?: boolean;
 };
@@ -88,13 +105,8 @@ export type UserOrganizationDataContentProps = {
     onSelectOrganization: (organizationId: string | null) => void;
     onSelectProperty: (propertyId: string | null) => void;
     onViewProperty: () => void;
-    selectedProperty: OrganizationProperty | null;
+    selectedProperty: UserOrganizationProperty | null;
     detailOpen: boolean;
     onCloseDetail: () => void;
     onSelectUser: (userId: string | null) => void;
-    onEditOrganization: () => void;
-    onDeleteOrganization: () => void;
-    organizationActionsDisabled?: boolean;
-    deleteDisabled?: boolean;
-    deleteHelperText?: string;
 };

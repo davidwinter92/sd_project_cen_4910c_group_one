@@ -8,11 +8,9 @@ import { UserDisplayProps } from "../types";
 export default function UserDisplay({
     users,
     selectedUserId,
-    userName,
     onSelectUser,
     isLoading = false,
 }: UserDisplayProps) {
-    const displayName = userName.trim() || "Unknown user";
     const selectedUser = React.useMemo(
         () => users.find((user) => user.id === selectedUserId) ?? null,
         [selectedUserId, users],
@@ -29,8 +27,8 @@ export default function UserDisplay({
             }}
         >
             <Stack spacing={1.5}>
-                <Typography variant="overline" color="text.secondary">
-                    User
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    User Account
                 </Typography>
                 <Autocomplete
                     options={users}
@@ -56,15 +54,6 @@ export default function UserDisplay({
                         />
                     )}
                 />
-                <Typography
-                    variant="subtitle1"
-                    sx={{
-                        fontWeight: 700,
-                        overflowWrap: "anywhere",
-                    }}
-                >
-                    {displayName}
-                </Typography>
             </Stack>
         </Paper>
     );

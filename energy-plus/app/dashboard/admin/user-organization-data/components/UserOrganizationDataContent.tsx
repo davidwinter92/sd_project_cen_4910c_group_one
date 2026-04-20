@@ -16,7 +16,7 @@ import {
 
 import {
     UserOrganizationDataContentProps,
-    OrganizationProperty,
+    UserOrganizationProperty,
 } from "../types";
 import OrganizationPropertiesList from "./OrganizationPropertiesList";
 import OrganizationSearch from "./OrganizationSearch";
@@ -25,7 +25,7 @@ import ViewPropertyButton from "./ViewPropertyButton";
 
 function getPropertiesEmptyMessage(
     selectedOrganizationId: string | null,
-    properties: OrganizationProperty[],
+    properties: UserOrganizationProperty[],
 ) {
     if (!selectedOrganizationId) {
         return "Select an organization to view its properties.";
@@ -38,38 +38,32 @@ function getPropertiesEmptyMessage(
     return undefined;
 }
 
-function formatDetailValue(property: OrganizationProperty) {
-    const { value, type } = property;
-
-    if (value === null || value === "") {
-        return "No value";
+function formatPropertyLabel(property: UserOrganizationProperty) {
+    if (property.street?.trim()) {
+        return property.street.trim();
     }
 
-    if (type === "date" && typeof value === "string") {
-        const parsedDate = new Date(value);
+    return "Unnamed Property";
+}
 
-        if (!Number.isNaN(parsedDate.getTime())) {
-            return parsedDate.toLocaleString();
-        }
-    }
+function formatPropertyLocation(property: UserOrganizationProperty) {
+    return [property.city, property.state, property.zip?.toString()]
+        .filter((value): value is string => Boolean(value?.trim()))
+        .join(", ");
+}
 
-    if (type === "json" && typeof value === "string") {
-        try {
-            return JSON.stringify(JSON.parse(value), null, 2);
-        } catch {
-            return value;
-        }
-    }
+function formatPropertyAddress(property: UserOrganizationProperty) {
+    return [property.street, property.city, property.state, property.zip?.toString()]
+        .filter((value): value is string => Boolean(value?.trim()))
+        .join(", ");
+}
 
-    if (typeof value === "boolean") {
-        return value ? "True" : "False";
+function renderValue(value: string | number | null | undefined) {
+    if (value === null || value === undefined || value === "") {
+        return "—";
     }
 
     return String(value);
-}
-
-function getDetailValueTitle(label: string) {
-    return label.replace(/^Linked\s+/i, "").trim();
 }
 
 export default function UserOrganizationDataContent({
@@ -89,11 +83,6 @@ export default function UserOrganizationDataContent({
     detailOpen,
     onCloseDetail,
     onSelectUser,
-    onEditOrganization,
-    onDeleteOrganization,
-    organizationActionsDisabled = false,
-    deleteDisabled = false,
-    deleteHelperText,
 }: UserOrganizationDataContentProps) {
     const selectedOrganization = organizations.find(
         (organization) => organization.id === selectedOrganizationId,
@@ -104,7 +93,6 @@ export default function UserOrganizationDataContent({
         ? undefined
         : getPropertiesEmptyMessage(selectedOrganizationId, properties);
     const showPropertyAction = Boolean(selectedPropertyId);
-    const showOrganizationActions = Boolean(selectedOrganizationId);
 
     return (
         <Stack spacing={3.5}>
@@ -116,12 +104,12 @@ export default function UserOrganizationDataContent({
                     User Organization Data
                 </Typography>
                 <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-                    View all user organizations and inspect organization field values for data validation inquiries.
+                    View all user organizations and properties for data validation inquiries.
                 </Typography>
                 <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: "wrap", gap: 1 }}>
-                    <Chip label={`${users.length} users`} size="small" variant="outlined" />
-                    <Chip label={`${organizations.length} organizations`} size="small" variant="outlined" />
-                    <Chip label={`${properties.length} properties`} size="small" variant="outlined" />
+                    <Chip label={`${users.length} Users`} size="small" variant="outlined" />
+                    <Chip label={`${organizations.length} Organizations`} size="small" variant="outlined" />
+                    <Chip label={`${properties.length} Properties`} size="small" variant="outlined" />
                 </Stack>
             </Box>
 
@@ -160,24 +148,6 @@ export default function UserOrganizationDataContent({
                     />
                 </Grid>
 
-                {showOrganizationActions ? (
-                    <Grid size={{ xs: 12 }}>
-                        <Stack
-                            direction="column"
-                            spacing={1.5}
-                            alignItems="flex-start"
-                        >
-                            <Button
-                                variant="outlined"
-                                onClick={onEditOrganization}
-                                disabled={organizationActionsDisabled || !selectedOrganizationId}
-                            >
-                                Edit Organization Name
-                            </Button>
-                        </Stack>
-                    </Grid>
-                ) : null}
-
                 <Grid size={{ xs: 12, md: showPropertyAction ? 8.5 : 12 }}>
                     <OrganizationPropertiesList
                         properties={properties}
@@ -194,71 +164,80 @@ export default function UserOrganizationDataContent({
                 {showPropertyAction ? (
                     <Grid size={{ xs: 12, md: 3.5 }}>
                         <ViewPropertyButton
-                            selectedPropertyId={selectedPropertyId}
+                            selectedProperty={selectedProperty}
                             onClick={onViewProperty}
                             disabled={!selectedPropertyId}
                         />
                     </Grid>
                 ) : null}
-
-                {showOrganizationActions ? (
-                    <Grid size={{ xs: 12 }}>
-                        <Stack spacing={1.5} alignItems="flex-start">
-                            {deleteHelperText ? (
-                                <Typography variant="body2" color="text.secondary">
-                                    {deleteHelperText}
-                                </Typography>
-                            ) : null}
-                            <Button
-                                color="error"
-                                variant="outlined"
-                                onClick={onDeleteOrganization}
-                                disabled={
-                                    organizationActionsDisabled
-                                    || !selectedOrganizationId
-                                    || deleteDisabled
-                                }
-                            >
-                                Delete Selected Organization
-                            </Button>
-                        </Stack>
-                    </Grid>
-                ) : null}
             </Grid>
 
             <Dialog open={detailOpen} onClose={onCloseDetail} fullWidth maxWidth="sm">
-                <DialogTitle>{selectedProperty?.label ?? "Property details"}</DialogTitle>
+                <DialogTitle>{selectedProperty ? formatPropertyLabel(selectedProperty) : "Property Details"}</DialogTitle>
                 <DialogContent dividers>
                     {selectedProperty ? (
                         <Stack spacing={2}>
                             <Box>
                                 <Typography variant="overline" color="text.secondary">
-                                    {getDetailValueTitle(selectedProperty.label)}
+                                    Jurisdiction
                                 </Typography>
-                                <Typography
-                                    variant="body1"
-                                    sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
-                                >
-                                    {formatDetailValue(selectedProperty)}
+                                <Typography variant="body1">
+                                    {selectedProperty.jurisdiction_name
+                                        ? selectedProperty.jurisdiction_name
+                                        : renderValue(selectedProperty.jurisdiction_id)}
                                 </Typography>
                             </Box>
-                            {selectedProperty.description ? (
-                                <Box>
-                                    <Typography variant="overline" color="text.secondary">
-                                        Description
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary">
-                                        {selectedProperty.description}
-                                    </Typography>
-                                </Box>
-                            ) : null}
-                            {selectedProperty.updatedAt ? (
+                            <Box>
+                                <Typography variant="overline" color="text.secondary">
+                                    Address
+                                </Typography>
+                                <Typography variant="body1">
+                                    {renderValue(formatPropertyAddress(selectedProperty))}
+                                </Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="overline" color="text.secondary">
+                                    Property Type
+                                </Typography>
+                                <Typography variant="body1">
+                                    {renderValue(selectedProperty.property_type)}
+                                </Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="overline" color="text.secondary">
+                                    Square Feet
+                                </Typography>
+                                <Typography variant="body1">
+                                    {renderValue(selectedProperty.sq_ft)}
+                                </Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="overline" color="text.secondary">
+                                    ZIP
+                                </Typography>
+                                <Typography variant="body1">{renderValue(selectedProperty.zip)}</Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="overline" color="text.secondary">
+                                    Organization ID
+                                </Typography>
+                                <Typography variant="body1">{selectedProperty.organization_id}</Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="overline" color="text.secondary">
+                                    Location Details
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    {renderValue(formatPropertyLocation(selectedProperty))}
+                                </Typography>
+                            </Box>
+                            {selectedProperty.created_at ? (
                                 <Box>
                                     <Typography variant="overline" color="text.secondary">
                                         Created At
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">
-                                        {new Date(selectedProperty.updatedAt).toLocaleString()}
+                                        {new Date(selectedProperty.created_at).toLocaleString()}
                                     </Typography>
                                 </Box>
                             ) : null}

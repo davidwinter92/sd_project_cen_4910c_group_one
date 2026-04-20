@@ -2,7 +2,6 @@
 
 import {
     Alert,
-    Box,
     CircularProgress,
     List,
     ListItem,
@@ -13,28 +12,14 @@ import {
     Typography,
 } from "@mui/material";
 
-import { OrganizationPropertiesListProps, OrganizationProperty } from "../types";
+import { OrganizationPropertiesListProps, UserOrganizationProperty } from "../types";
 
-function formatPropertyValue(property: OrganizationProperty) {
-    const { value, type } = property;
-
-    if (value === null || value === "") {
-        return "No value";
+function buildPropertyLabel(property: UserOrganizationProperty) {
+    if (property.street?.trim()) {
+        return property.street.trim();
     }
 
-    if (type === "date" && typeof value === "string") {
-        const parsedDate = new Date(value);
-
-        if (!Number.isNaN(parsedDate.getTime())) {
-            return parsedDate.toLocaleString();
-        }
-    }
-
-    if (typeof value === "boolean") {
-        return value ? "True" : "False";
-    }
-
-    return String(value);
+    return "Unnamed Property";
 }
 
 export default function OrganizationPropertiesList({
@@ -55,14 +40,8 @@ export default function OrganizationPropertiesList({
             }}
         >
             <Stack spacing={0.5} sx={{ px: 1, pb: 1.5 }}>
-                <Typography variant="overline" color="text.secondary">
-                    Properties
-                </Typography>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    Organization Properties
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                    Select a property row to inspect its value in more detail.
+                    Properties
                 </Typography>
             </Stack>
 
@@ -95,26 +74,16 @@ export default function OrganizationPropertiesList({
                                 }}
                             >
                                 <ListItemText
-                                    primary={property.label}
+                                    primary={buildPropertyLabel(property)}
                                     secondary={
-                                        <Box component="span" sx={{ display: "block", mt: 0.5 }}>
-                                            <Typography
-                                                component="span"
-                                                variant="body2"
-                                                sx={{ display: "block", fontWeight: 600 }}
-                                            >
-                                                {formatPropertyValue(property)}
-                                            </Typography>
-                                            <Typography
-                                                component="span"
-                                                variant="caption"
-                                                color="text.secondary"
-                                                sx={{ display: "block", mt: 0.5 }}
-                                            >
-                                                {property.key}
-                                                {property.description ? ` • ${property.description}` : ""}
-                                            </Typography>
-                                        </Box>
+                                        [
+                                            property.property_type,
+                                            property.city,
+                                            property.state,
+                                            property.sq_ft ? `${property.sq_ft.toLocaleString()} sq ft` : null,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(" • ") || "Property details unavailable"
                                     }
                                 />
                             </ListItemButton>

@@ -27,7 +27,7 @@ export default function OrganizationSearch({
             }}
         >
             <Stack spacing={1.5}>
-                <Typography variant="overline" color="text.secondary">
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
                     Organization
                 </Typography>
                 <Autocomplete

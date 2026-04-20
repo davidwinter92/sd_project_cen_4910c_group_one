@@ -18,21 +18,24 @@ type OrganizationRow = {
     created_at: string | null;
 };
 
-type PropertyCountRow = {
+type PropertyRow = {
     id: string;
     organization_id: string;
+    jurisdiction_id: string | null;
+    jurisdiction_name?: string | null;
     street: string | null;
+    city: string | null;
+    state: string | null;
+    zip: number | null;
+    sq_ft: number | null;
+    property_type: string | null;
+    created_at: string | null;
 };
 
-function buildPropertyLabel(property: PropertyCountRow) {
-    if (property.street?.trim()) {
-        return property.street.trim();
-    }
-
-    return `Unnamed Property (${property.id.slice(0, 8)})`;
-}
-
-function formatUserName(profile: ProfileRow | null, authUser: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
+function formatUserName(
+    profile: ProfileRow | null,
+    authUser: { email?: string | null; user_metadata?: Record<string, unknown> } | null,
+) {
     const fullName = [profile?.first_name, profile?.last_name]
         .filter((value): value is string => Boolean(value?.trim()))
         .join(" ")
@@ -51,81 +54,6 @@ function formatUserName(profile: ProfileRow | null, authUser: { email?: string |
     }
 
     return profile?.email?.trim() || authUser?.email?.trim() || "Unknown user";
-}
-
-function buildOrganizationProperties(
-    organization: OrganizationRow,
-    linkedPropertyCount: number,
-    linkedPropertyNames: string[],
-    createdByDisplayName: string,
-) {
-    return [
-        {
-            id: `${organization.id}-org-id`,
-            key: "id",
-            label: "Organization ID",
-            value: organization.id,
-            description: "Primary identifier for this organization record.",
-            type: "string" as const,
-            updatedAt: organization.created_at ?? undefined,
-        },
-        {
-            id: `${organization.id}-name`,
-            key: "name",
-            label: "Organization Name",
-            value: organization.name,
-            description: "Display name used throughout the dashboard.",
-            type: "string" as const,
-            updatedAt: organization.created_at ?? undefined,
-        },
-        {
-            id: `${organization.id}-slug`,
-            key: "slug",
-            label: "Slug",
-            value: organization.slug,
-            description: "URL-safe organization identifier.",
-            type: "string" as const,
-            updatedAt: organization.created_at ?? undefined,
-        },
-        {
-            id: `${organization.id}-created-by`,
-            key: "created_by",
-            label: "Created By User",
-            value: createdByDisplayName,
-            description: "User currently associated with this organization record.",
-            type: "string" as const,
-            updatedAt: organization.created_at ?? undefined,
-        },
-        {
-            id: `${organization.id}-created-at`,
-            key: "created_at",
-            label: "Created At",
-            value: organization.created_at,
-            description: "Timestamp when the organization record was created.",
-            type: "date" as const,
-            updatedAt: organization.created_at ?? undefined,
-        },
-        {
-            id: `${organization.id}-property-count`,
-            key: "property_count",
-            label: "Linked Property Count",
-            value: linkedPropertyCount,
-            description: "Number of property records currently assigned to this organization.",
-            type: "number" as const,
-            updatedAt: organization.created_at ?? undefined,
-        },
-        {
-            id: `${organization.id}-linked-properties`,
-            key: "linked_properties",
-            label: "Linked Properties",
-            value: linkedPropertyNames.length
-                ? linkedPropertyNames.join("\n")
-                : "No linked properties",
-            description: "Property names currently assigned to this organization.",
-            type: "string" as const,
-            updatedAt: organization.created_at ?? undefined,
-        },
-    ];
 }
 
 export async function GET(
@@ -186,53 +114,52 @@ export async function GET(
         const organizations = (organizationsResult.data ?? []) as OrganizationRow[];
         const organizationIds = organizations.map((organization) => organization.id);
 
-        const propertyCountMap = new Map<string, number>();
-        const propertyNameMap = new Map<string, string[]>();
+        const propertyMap = new Map<string, PropertyRow[]>();
 
         if (organizationIds.length) {
             const propertyRowsResult = await supabaseServer
                 .from("properties")
-                .select("id, organization_id, street")
-                .in("organization_id", organizationIds);
+                .select(
+                    "id, organization_id, jurisdiction_id, street, city, state, zip, sq_ft, property_type, created_at, jurisdictions(name)",
+                )
+                .in("organization_id", organizationIds)
+                .order("created_at", { ascending: false });
 
             if (propertyRowsResult.error) {
                 return NextResponse.json(
-                    { error: `Unable to fetch organization property counts: ${propertyRowsResult.error.message}` },
+                    { error: `Unable to fetch organization properties: ${propertyRowsResult.error.message}` },
                     { status: 500 },
                 );
             }
 
-            for (const property of (propertyRowsResult.data ?? []) as PropertyCountRow[]) {
-                propertyCountMap.set(
+            for (const property of (propertyRowsResult.data ?? []) as Array<
+                PropertyRow & { jurisdictions?: { name?: string | null } | null }
+            >) {
+                propertyMap.set(
                     property.organization_id,
-                    (propertyCountMap.get(property.organization_id) ?? 0) + 1,
-                );
-                propertyNameMap.set(
-                    property.organization_id,
-                    [...(propertyNameMap.get(property.organization_id) ?? []), buildPropertyLabel(property)],
+                    [
+                        ...(propertyMap.get(property.organization_id) ?? []),
+                        {
+                            ...property,
+                            jurisdiction_name: property.jurisdictions?.name ?? null,
+                        },
+                    ],
                 );
             }
         }
 
-        const createdByDisplayName = formatUserName(
-            profileResult.data ?? null,
-            authUserResult.data.user,
-        );
-
         return NextResponse.json({
             user: {
                 id: normalizedUserId,
-                name: createdByDisplayName,
+                name: formatUserName(profileResult.data ?? null, authUserResult.data.user),
             },
             organizations: organizations.map((organization) => ({
                 id: organization.id,
                 name: organization.name ?? "Untitled organization",
-                properties: buildOrganizationProperties(
-                    organization,
-                    propertyCountMap.get(organization.id) ?? 0,
-                    propertyNameMap.get(organization.id) ?? [],
-                    createdByDisplayName,
-                ),
+                slug: organization.slug,
+                createdBy: organization.created_by,
+                createdAt: organization.created_at,
+                properties: propertyMap.get(organization.id) ?? [],
             })),
         });
     } catch (error) {
