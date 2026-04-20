@@ -5,6 +5,7 @@ import {
     Box,
     Button,
     Chip,
+    Divider,
     Dialog,
     DialogActions,
     DialogContent,
@@ -64,6 +65,19 @@ function renderValue(value: string | number | null | undefined) {
     }
 
     return String(value);
+}
+
+function DetailField({ label, value }: { label: string; value: string }) {
+    return (
+        <Box>
+            <Typography variant="caption" color="text.secondary">
+                {label}
+            </Typography>
+            <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.25 }}>
+                {value}
+            </Typography>
+        </Box>
+    );
 }
 
 export default function UserOrganizationDataContent({
@@ -173,73 +187,55 @@ export default function UserOrganizationDataContent({
             </Grid>
 
             <Dialog open={detailOpen} onClose={onCloseDetail} fullWidth maxWidth="sm">
-                <DialogTitle>{selectedProperty ? formatPropertyLabel(selectedProperty) : "Property Details"}</DialogTitle>
+                <DialogTitle sx={{ fontWeight: 800 }}>
+                    {selectedProperty ? formatPropertyLabel(selectedProperty) : "Property Details"}
+                </DialogTitle>
                 <DialogContent dividers>
                     {selectedProperty ? (
-                        <Stack spacing={2}>
-                            <Box>
-                                <Typography variant="overline" color="text.secondary">
-                                    Jurisdiction
-                                </Typography>
-                                <Typography variant="body1">
-                                    {selectedProperty.jurisdiction_name
+                        <Stack gap={1.25}>
+                            <Typography variant="body2" color="text.secondary">
+                                View info for the selected property.
+                            </Typography>
+
+                            <Divider sx={{ mb: 1 }} />
+
+                            <DetailField
+                                label="Jurisdiction"
+                                value={
+                                    selectedProperty.jurisdiction_name
                                         ? selectedProperty.jurisdiction_name
-                                        : renderValue(selectedProperty.jurisdiction_id)}
-                                </Typography>
-                            </Box>
-                            <Box>
-                                <Typography variant="overline" color="text.secondary">
-                                    Address
-                                </Typography>
-                                <Typography variant="body1">
-                                    {renderValue(formatPropertyAddress(selectedProperty))}
-                                </Typography>
-                            </Box>
-                            <Box>
-                                <Typography variant="overline" color="text.secondary">
-                                    Property Type
-                                </Typography>
-                                <Typography variant="body1">
-                                    {renderValue(selectedProperty.property_type)}
-                                </Typography>
-                            </Box>
-                            <Box>
-                                <Typography variant="overline" color="text.secondary">
-                                    Square Feet
-                                </Typography>
-                                <Typography variant="body1">
-                                    {renderValue(selectedProperty.sq_ft)}
-                                </Typography>
-                            </Box>
-                            <Box>
-                                <Typography variant="overline" color="text.secondary">
-                                    ZIP
-                                </Typography>
-                                <Typography variant="body1">{renderValue(selectedProperty.zip)}</Typography>
-                            </Box>
-                            <Box>
-                                <Typography variant="overline" color="text.secondary">
-                                    Organization ID
-                                </Typography>
-                                <Typography variant="body1">{selectedProperty.organization_id}</Typography>
-                            </Box>
-                            <Box>
-                                <Typography variant="overline" color="text.secondary">
-                                    Location Details
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                    {renderValue(formatPropertyLocation(selectedProperty))}
-                                </Typography>
-                            </Box>
+                                        : renderValue(selectedProperty.jurisdiction_id)
+                                }
+                            />
+                            <DetailField
+                                label="Address"
+                                value={renderValue(formatPropertyAddress(selectedProperty))}
+                            />
+                            <DetailField
+                                label="Property Type"
+                                value={renderValue(selectedProperty.property_type)}
+                            />
+                            <DetailField
+                                label="Square Feet"
+                                value={renderValue(selectedProperty.sq_ft)}
+                            />
+                            <DetailField
+                                label="ZIP"
+                                value={renderValue(selectedProperty.zip)}
+                            />
+                            <DetailField
+                                label="Organization ID"
+                                value={selectedProperty.organization_id}
+                            />
+                            <DetailField
+                                label="Location Details"
+                                value={renderValue(formatPropertyLocation(selectedProperty))}
+                            />
                             {selectedProperty.created_at ? (
-                                <Box>
-                                    <Typography variant="overline" color="text.secondary">
-                                        Created At
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary">
-                                        {new Date(selectedProperty.created_at).toLocaleString()}
-                                    </Typography>
-                                </Box>
+                                <DetailField
+                                    label="Created At"
+                                    value={new Date(selectedProperty.created_at).toLocaleString()}
+                                />
                             ) : null}
                         </Stack>
                     ) : (
