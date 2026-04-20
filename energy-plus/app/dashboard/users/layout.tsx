@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -48,6 +49,7 @@ function toErrorMessage(err: unknown, fallback: string) {
 }
 
 export default function UsersContent() {
+    const router = useRouter();
     const isMountedRef = React.useRef(false);
     const [users, setUsers] = React.useState<AdminUser[]>([]);
     const [loading, setLoading] = React.useState(true);
@@ -298,6 +300,16 @@ export default function UsersContent() {
                 >
                     <Button size="small" onClick={() => startEdit(params.row)}>
                         Edit
+                    </Button>
+                    <Button
+                        size="small"
+                        onClick={() =>
+                            router.push(
+                                `/dashboard/admin/user-organization-data?userId=${encodeURIComponent(params.row.id)}`,
+                            )
+                        }
+                    >
+                        Organization Data
                     </Button>
                     <Button
                         size="small"
