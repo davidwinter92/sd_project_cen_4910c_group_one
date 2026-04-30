@@ -9,9 +9,10 @@ import {
     Typography,
 } from "@mui/material";
 
-import RadialDial from "../../AuditorOverview/components/RadialDial";
-import Graph from "../../AuditorOverview/components/Graph";
-import EnergyUsageTable from "../../AuditorOverview/components/EnergyUsageTable";
+import RadialDial from "../../auditorOverview/components/RadialDial";
+import Graph from "../../auditorOverview/components/Graph";
+import EnergyUsageTable from "../../auditorOverview/components/EnergyUsageTable";
+import CertifyProperty from "./CertifyProperty";
 
 type PropertyRow = {
     id: string;
@@ -24,6 +25,9 @@ type PropertyRow = {
     sq_ft: number | null;
     property_type: string | null;
     created_at: string | null;
+    is_certified: boolean | null;
+    certified_at?: string | null;
+    certified_by?: string | null;
 };
 
 interface PropertyMetricsDialogProps {
@@ -63,6 +67,8 @@ export default function PropertyMetricsDialog({
                         <Grid size={{ xs: 12 }}>
                             <EnergyUsageTable property={property} />
                         </Grid>
+
+
                     </Grid>
                 )}
             </DialogContent>

@@ -19,10 +19,17 @@ import { supabaseClient } from "@/lib/supabaseClient";
 export interface Property {
     id: string;
     organization_id: string;
+    jurisdiction_id: string | null;
     street: string | null;
     city: string | null;
     state: string | null;
+    zip: number | null;
+    sq_ft: number | null;
     property_type: string | null;
+    created_at: string | null;
+    is_certified: boolean | null;
+    certified_at?: string | null;
+    certified_by?: string | null;
 }
 
 interface SelectPropertiesProps {
@@ -53,7 +60,7 @@ export default function SelectProperties({
             const { data, error } = await supabaseClient
                 .from("properties")
                 .select(
-                    "id, organization_id, jurisdiction_id, street, city, state, zip, sq_ft, property_type, created_at"
+                    "id, organization_id, jurisdiction_id, street, city, state, zip, sq_ft, property_type, created_at, is_certified, certified_at, certified_by"
                 )
                 .eq("organization_id", selectedOrganizationId)
                 .order("created_at", { ascending: false });
@@ -130,6 +137,7 @@ export default function SelectProperties({
                                             property.city,
                                             property.state,
                                             property.property_type,
+                                            property.is_certified ? "Certified" : "Not Certified",
                                         ]
                                             .filter(Boolean)
                                             .join(" • ")}

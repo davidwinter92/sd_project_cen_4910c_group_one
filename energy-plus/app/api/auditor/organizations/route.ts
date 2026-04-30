@@ -12,7 +12,7 @@ export async function GET() {
                 supabaseServer
                     .from("properties")
                     .select(
-                        "id, organization_id, jurisdiction_id, street, city, state, zip, sq_ft, property_type, created_at",
+                        "id, organization_id, jurisdiction_id, street, city, state, zip, sq_ft, property_type, created_at, is_certified, certified_at, certified_by",
                     )
                     .order("created_at", { ascending: false }),
             ]);
